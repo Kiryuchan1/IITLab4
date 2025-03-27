@@ -17,15 +17,26 @@ jobs:
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+      run: |
+        echo "Logging in to Docker Hub..."
+        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 
     - name: Build and push Docker image
       env:
-        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}  # Explicitly pass DOCKER_USERNAME as an env variable
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        echo "DOCKER_USERNAME: $DOCKER_USERNAME"  # This will help debug if DOCKER_USERNAME is being passed correctly
-        docker build -t "${DOCKER_USERNAME}/mywebapp:latest" .
-        docker push "${DOCKER_USERNAME}/mywebapp:latest"
+        # Проверка переменной DOCKER_USERNAME
+        if [ -z "$DOCKER_USERNAME" ]; then
+          echo "ERROR: DOCKER_USERNAME is not set!"; exit 1;
+        fi
+        echo "Using DOCKER_USERNAME: $DOCKER_USERNAME"
+
+        # Корректный формат имени образа
+        IMAGE_NAME="$DOCKER_USERNAME/mywebapp:latest"
+
+        # Сборка и пуш образа
+        docker build -t "$IMAGE_NAME" .
+        docker push "$IMAGE_NAME"
 
     - name: SSH to server and update container
       uses: appleboy/ssh-action@master
@@ -34,19 +45,23 @@ jobs:
         username: ${{ secrets.SERVER_USER }}
         key: ${{ secrets.SSH_PRIVATE_KEY }}
         script: |
-          # Navigate to the directory where the project is located
+          echo "Connecting to server..."
+
+          # Переход в папку проекта
           cd ~/Lab4
 
-          # Pull the latest code from GitHub
-          git pull origin main  # Или master, если ваша ветка называется master
+          # Обновление репозитория
+          git pull origin main
 
-          # Build and push the Docker image
-          docker build -t "${DOCKER_USERNAME}/mywebapp:latest" .
-          docker push "${DOCKER_USERNAME}/mywebapp:latest"
+          # Обновление контейнера с приложением
+          IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/mywebapp:latest"
 
-          # Stop and remove the old container (if any)
+          echo "Stopping old container..."
           docker stop mywebapp || true
           docker rm mywebapp || true
 
-          # Run the new container with the updated image
-          docker run -d -p 80:80 --name mywebapp "${DOCKER_USERNAME}/mywebapp:latest"
+          echo "Pulling new image..."
+          docker pull "$IMAGE_NAME"
+
+          echo "Running new container..."
+          docker run -d -p 80:80 --name mywebapp "$IMAGE_NAME"
