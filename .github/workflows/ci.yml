@@ -38,7 +38,7 @@ jobs:
           cd ~/Lab4
 
           # Pull the latest code from GitHub
-          git pull origin main
+          git pull origin main  # Или master, если ваша ветка называется master
 
           # Build and push the Docker image
           docker build -t "${DOCKER_USERNAME}/mywebapp:latest" .
