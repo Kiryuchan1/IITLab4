@@ -21,9 +21,9 @@ jobs:
 
     - name: Build and push Docker image
       run: |
-        echo "DOCKER_USERNAME: $DOCKER_USERNAME"
+        echo "DOCKER_USERNAME: $DOCKER_USERNAME"  # This will help debug if DOCKER_USERNAME is being passed correctly
         docker build -t $DOCKER_USERNAME/mywebapp:latest .
-	docker push $DOCKER_USERNAME/mywebapp:latest
+        docker push $DOCKER_USERNAME/mywebapp:latest
 
     - name: SSH to server and update container
       uses: appleboy/ssh-action@master
