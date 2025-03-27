@@ -1,0 +1,49 @@
+name: CI Pipeline for Docker and Watchtower
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: ubuntu-latest  # GitHub runner for CI/CD pipeline
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v2
+
+    - name: Login to Docker Hub
+      env:
+        DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
+        DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
+      run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+
+    - name: Build and push Docker image
+      run: |
+        docker build -t $DOCKER_USERNAME/mywebapp:latest .
+        docker push $DOCKER_USERNAME/mywebapp:latest
+
+    - name: SSH to server and update container
+      uses: appleboy/ssh-action@master
+      with:
+        host: ${{ secrets.SERVER_IP }}
+        username: ${{ secrets.SERVER_USER }}
+        key: ${{ secrets.SSH_PRIVATE_KEY }}
+        script: |
+          # Navigate to the directory where the project is located
+          cd ~/Lab4
+
+          # Pull the latest code from GitHub
+          git pull origin main
+
+          # Build and push the Docker image
+          docker build -t $DOCKER_USERNAME/mywebapp:latest .
+          docker push $DOCKER_USERNAME/mywebapp:latest
+
+          # Stop and remove the old container (if any)
+          docker stop mywebapp || true
+          docker rm mywebapp || true
+
+          # Run the new container with the updated image
+          docker run -d -p 80:80 --name mywebapp $DOCKER_USERNAME/mywebapp:latest
