@@ -13,6 +13,20 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v2
 
+    - name: Install linters
+      run: |
+        npm install -g htmlhint stylelint
+        sudo apt-get install -y hadolint
+
+    - name: Lint HTML files
+      run: htmlhint "**/*.html"
+
+    - name: Lint CSS files
+      run: stylelint "**/*.css"
+
+    - name: Lint Dockerfile
+      run: hadolint Dockerfile
+
     - name: Login to Docker Hub
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
@@ -25,16 +39,13 @@ jobs:
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        # Проверка переменной DOCKER_USERNAME
         if [ -z "$DOCKER_USERNAME" ]; then
           echo "ERROR: DOCKER_USERNAME is not set!"; exit 1;
         fi
         echo "Using DOCKER_USERNAME: $DOCKER_USERNAME"
 
-        # Корректный формат имени образа
         IMAGE_NAME="$DOCKER_USERNAME/mywebapp:latest"
 
-        # Сборка и пуш образа
         docker build -t "$IMAGE_NAME" .
         docker push "$IMAGE_NAME"
 
@@ -47,13 +58,10 @@ jobs:
         script: |
           echo "Connecting to server..."
 
-          # Переход в папку проекта
           cd ~/Lab4
 
-          # Обновление репозитория
           git pull origin main
 
-          # Обновление контейнера с приложением
           IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/mywebapp:latest"
 
           echo "Stopping old container..."
