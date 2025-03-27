@@ -3,7 +3,7 @@ name: CI Pipeline for Docker and Watchtower
 on:
   push:
     branches:
-      - main
+      - master
 
 jobs:
   build:
