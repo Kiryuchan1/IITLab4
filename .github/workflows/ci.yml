@@ -16,7 +16,8 @@ jobs:
     - name: Install linters
       run: |
         npm install -g htmlhint stylelint
-        sudo apt-get install -y hadolint
+        curl -sL https://github.com/hadolint/hadolint/releases/latest/download/hadolint-Linux-x86_64 -o /usr/local/bin/hadolint
+        chmod +x /usr/local/bin/hadolint
 
     - name: Lint HTML files
       run: htmlhint "**/*.html"
