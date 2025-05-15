@@ -56,7 +56,7 @@ resource "aws_instance" "web" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
   key_name                   = "keyforlab4"
-  subnet_id                  = data.aws_subnets.default.ids[0]
+  subnet_id                  = "subnet-0bc48a2ec933f1468"
   security_groups            = [aws_security_group.web_sg.name]
   associate_public_ip_address = true
 
