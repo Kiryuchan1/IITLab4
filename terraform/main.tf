@@ -50,6 +50,15 @@ resource "aws_security_group" "web_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  lifecycle {
+    ignore_changes = [
+      ingress,
+      egress,
+      description,
+      tags,
+    ]
+  }
 }
 
 resource "aws_instance" "web" {
@@ -72,6 +81,7 @@ resource "aws_instance" "web" {
 
   tags = {
     Name = "lab4-instance"
+
   }
 }
 
