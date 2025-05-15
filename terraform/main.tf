@@ -24,7 +24,7 @@ data "aws_ami" "ubuntu" {
 }
 
 resource "aws_security_group" "web_sg" {
-  name        = "web-sg"
+  name        = "web-sg-lab4"
   description = "Allow SSH and HTTP"
   vpc_id      = data.aws_vpc.default.id
 
