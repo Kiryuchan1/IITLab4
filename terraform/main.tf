@@ -2,10 +2,17 @@ provider "aws" {
   region = "eu-central-1"
 }
 
+# Получаем default VPC
 data "aws_vpc" "default" {
   default = true
 }
 
+# Получаем все сабнеты для default VPC
+data "aws_subnet_ids" "default" {
+  vpc_id = data.aws_vpc.default.id
+}
+
+# Получаем последний официальный Ubuntu 22.04 AMI
 data "aws_ami" "ubuntu" {
   most_recent = true
   owners      = ["099720109477"] # Canonical
@@ -16,6 +23,7 @@ data "aws_ami" "ubuntu" {
   }
 }
 
+# Security Group с разрешениями на SSH и HTTP
 resource "aws_security_group" "web_sg" {
   name        = "web-sg"
   description = "Allow SSH and HTTP"
@@ -46,10 +54,11 @@ resource "aws_security_group" "web_sg" {
 }
 
 resource "aws_instance" "web" {
-  ami                    = "ami-01cd11f529b248fd4"
-  instance_type          = "t2.micro"
-  key_name               = "keyforlab4"
-  security_groups        = [aws_security_group.web_sg.name]
+  ami                         = data.aws_ami.ubuntu.id
+  instance_type               = "t2.micro"
+  key_name                   = "keyforlab4"
+  subnet_id                  = data.aws_subnet_ids.default.ids[0]
+  security_groups            = [aws_security_group.web_sg.name]
   associate_public_ip_address = true
 
   user_data = <<-EOF
