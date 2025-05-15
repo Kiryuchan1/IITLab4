@@ -1,17 +1,20 @@
-name: CI Pipeline for Docker and Watchtower
+name: CI + Terraform + Docker
 
 on:
   push:
     branches:
       - main
 
+env:
+  AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+  AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+
 jobs:
-  build:
-    runs-on: ubuntu-latest  # GitHub runner for CI/CD pipeline
+  build-and-push:
+    runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@v2
+    - uses: actions/checkout@v2
 
     - name: Install linters
       run: |
@@ -25,49 +28,38 @@ jobs:
     - name: Lint Dockerfile
       run: hadolint Dockerfile
 
-    - name: Login to Docker Hub
+    - name: Docker login
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
         DOCKER_PASSWORD: ${{ secrets.DOCKER_PASSWORD }}
-      run: |
-        echo "Logging in to Docker Hub..."
-        echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+      run: echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
 
-    - name: Build and push Docker image
+    - name: Build and push image
       env:
         DOCKER_USERNAME: ${{ secrets.DOCKER_USERNAME }}
       run: |
-        if [ -z "$DOCKER_USERNAME" ]; then
-          echo "ERROR: DOCKER_USERNAME is not set!"; exit 1;
-        fi
-        echo "Using DOCKER_USERNAME: $DOCKER_USERNAME"
+        IMAGE="$DOCKER_USERNAME/mywebapp:latest"
+        docker build -t $IMAGE .
+        docker push $IMAGE
 
-        IMAGE_NAME="$DOCKER_USERNAME/mywebapp:latest"
+  terraform-deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    defaults:
+      run:
+        working-directory: terraform
 
-        docker build -t "$IMAGE_NAME" .
-        docker push "$IMAGE_NAME"
+    steps:
+    - uses: actions/checkout@v2
 
-    - name: SSH to server and update container
-      uses: appleboy/ssh-action@master
-      with:
-        host: ${{ secrets.SERVER_IP }}
-        username: ${{ secrets.SERVER_USER }}
-        key: ${{ secrets.SSH_PRIVATE_KEY }}
-        script: |
-          echo "Connecting to server..."
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
 
-          cd ~/Lab4
+    - name: Terraform Init
+      run: terraform init
 
-          git pull origin main
+    - name: Terraform Plan
+      run: terraform plan
 
-          IMAGE_NAME="${{ secrets.DOCKER_USERNAME }}/mywebapp:latest"
-
-          echo "Stopping old container..."
-          docker stop mywebapp || true
-          docker rm mywebapp || true
-
-          echo "Pulling new image..."
-          docker pull "$IMAGE_NAME"
-
-          echo "Running new container..."
-          docker run -d -p 80:80 --name mywebapp "$IMAGE_NAME"
+    - name: Terraform Apply
+      run: terraform apply -auto-approve
