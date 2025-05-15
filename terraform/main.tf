@@ -55,9 +55,9 @@ resource "aws_security_group" "web_sg" {
 resource "aws_instance" "web" {
   ami                         = data.aws_ami.ubuntu.id
   instance_type               = "t2.micro"
-  key_name                   = "keyforlab4"
-  subnet_id                  = "subnet-0bc48a2ec933f1468"
-  security_groups            = [aws_security_group.web_sg.name]
+  key_name                    = "keyforlab4"
+  subnet_id                   = "subnet-0bc48a2ec933f1468"
+  vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
 
   user_data = <<-EOF
@@ -74,3 +74,4 @@ resource "aws_instance" "web" {
     Name = "lab4-instance"
   }
 }
+
