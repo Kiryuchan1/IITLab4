@@ -1,3 +1,11 @@
+terraform {
+  backend "s3" {
+    bucket = "pomoinoevedro"            # Имя твоего S3 бакета
+    key    = "lab4/terraform.tfstate"  # Путь к файлу состояния внутри бакета
+    region = "eu-central-1"             # Регион бакета
+  }
+}
+
 provider "aws" {
   region = "eu-central-1"
 }
@@ -81,7 +89,5 @@ resource "aws_instance" "web" {
 
   tags = {
     Name = "lab4-instance"
-
   }
 }
-
